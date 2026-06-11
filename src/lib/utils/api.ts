@@ -96,13 +96,18 @@ export async function logActivity(
     ipAddress?: string;
   }
 ) {
+  const detailsJson =
+    details?.extra != null
+      ? (JSON.parse(JSON.stringify(details.extra)) as Prisma.InputJsonValue)
+      : Prisma.JsonNull;
+
   await db.activityLog.create({
     data: {
       action,
       userId: userId ?? null,
       serverId: details?.serverId ?? null,
       serverName: details?.serverName ?? null,
-      details: details?.extra ?? Prisma.JsonNull,
+      details: detailsJson,
       ipAddress: details?.ipAddress ?? null,
     },
   });
