@@ -1,0 +1,120 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  MODERATOR
+  VIEWER
+}
+
+enum ActionType {
+  LOGIN
+  LOGOUT
+  SERVER_START
+  SERVER_STOP
+  SERVER_RESTART
+  SERVER_KILL
+  FILE_VIEW
+  FILE_UPLOAD
+  FILE_DOWNLOAD
+  FILE_DELETE
+  FILE_RENAME
+  BACKUP_CREATE
+  BACKUP_DELETE
+  BACKUP_DOWNLOAD
+  USER_ADD
+  USER_REMOVE
+  USER_MODIFY
+  SETTINGS_UPDATE
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  username     String   @unique
+  passwordHash String
+  role         Role     @default(VIEWER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  lastLoginAt  DateTime?
+
+  sessions     Session[]
+  activityLogs ActivityLog[]
+
+  @@index([email])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  ipAddress String?
+  userAgent String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+}
+
+model ActivityLog {
+  id         String     @id @default(cuid())
+  userId     String?
+  action     ActionType
+  serverId   String?
+  serverName String?
+  details    Json?
+  ipAddress  String?
+  createdAt  DateTime   @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([serverId])
+  @@index([createdAt])
+}
+
+model ServerSnapshot {
+  id         String   @id @default(cuid())
+  serverId   String
+  cpu        Float
+  memory     Float
+  disk       Float
+  network    Float
+  status     String
+  recordedAt DateTime @default(now())
+
+  @@index([serverId, recordedAt])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String?
+  type      String
+  title     String
+  message   String
+  serverId  String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+}
+
+model Settings {
+  id                String  @id @default(cuid())
+  key               String  @unique
+  value             String
+  description       String?
+  isPublic          Boolean @default(false)
+}
